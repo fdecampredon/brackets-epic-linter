@@ -343,7 +343,7 @@ define(function (require, exports, module) {
         $errorToolTipContainer = $(errorToolTipHTML).appendTo($("body"));
         $errorToolTipContent = $errorToolTipContainer.find(".error-tooltip-content");
         
-        setTimeout(run, 1000);
+        setTimeout(run, 500);
     });
     
     
