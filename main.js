@@ -360,7 +360,7 @@ define(function (require, exports, module) {
                                     message: message,
                                     type: type
                                 });
-                                if (isInferiorOrEqual(lineErr.pos, pos)) {
+                                if (isInferiorOrEqual(pos, lineErr.pos)) {
                                     lineErr.pos = pos;
                                 }
                                 if (isInferiorOrEqual(lineErr.endpos, endpos)) {
