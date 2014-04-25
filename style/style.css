@@ -1,11 +1,17 @@
-.CodeMirror *[class*="linter-error"] {
-    border-bottom: 2px dotted red;
+.CodeMirror *[class*="linter-"] {
+    background-image: url('./underline.svg');
+    background-position: bottom;
+    background-repeat: repeat-x;
+    padding-bottom: 3px;
     z-index: 6;
 }
 
+.CodeMirror *[class*="linter-error"] {
+    background-image: url('./underline-error.svg');
+}
+
 .CodeMirror *[class*="linter-warning"] {
-    border-bottom: 2px dotted #f89406;
-    z-index: 6;
+    background-image: url('./underline-warning.svg');
 }
 
 

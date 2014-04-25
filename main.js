@@ -314,7 +314,7 @@ define(function (require, exports, module) {
     
     // Bootstraping ----------------------------------------------
     
-    ExtensionUtils.loadStyleSheet(module, 'style.css');
+    ExtensionUtils.loadStyleSheet(module, 'style/style.css');
     
     var _codeInspectionRegister = CodeInspection.register;
     CodeInspection.register = function register() {
