@@ -240,13 +240,24 @@ define(function (require, exports, module) {
                         }
                         
                         if (!endpos) {
-                            var line = _currentDoc.getLine(pos.line);
-                            if (typeof line === 'undefined') {
-                                return errorsMap;
+                            var cm = _currentDoc._masterEditor._codeMirror,
+                                token = cm. getTokenAt({
+                                    line: pos.line,
+                                    ch: pos.ch + 1
+                                }),
+                                index = token.end;
+                            
+                            if (index < pos.ch) {
+                                var line = _currentDoc.getLine(pos.line);
+                                if (typeof line === 'undefined') {
+                                    return errorsMap;
+                                }
+                                index = line.length;
                             }
+                            
                             endpos = {
                                 line: error.pos.line,
-                                ch: line.length 
+                                ch: index
                             };
                         }
                         
