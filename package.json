@@ -1,8 +1,8 @@
 {
-    "name": "fdecampredon.brackets-error-gutters",
-    "title": "Pretty Title for the UI",
-    "description": "More useful details to let someone know what your extension is all about.",
-    "homepage": "https://github.com/fdecampredon/brackets-error-gutters",
+    "name": "fdecampredon.brackets-epic-linter",
+    "title": "Epic Linter",
+    "description": "Add interactive linting capabilitie to brackets and error marks in editor",
+    "homepage": "https://github.com/fdecampredon/brackets-epic-linter",
     "version": "0.0.1",
     "author": "François de Campredon <francois.de.campredon@gmail.com> (https://github.com/fdecampredon))",
     "license": "Apache V2",
