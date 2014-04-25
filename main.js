@@ -12,14 +12,17 @@ define(function (require, exports, module) {
         _                = brackets.getModule('thirdparty/lodash');
     
     
-    var errorToolTipHTML  = require("text!errortoolip.html"),
-        $errorToolTipContainer,    // function hint container
-        $errorToolTipContent;      // function hint content holder
+    var errorToolTipHTML  = require('text!errortoolip.html'),
+        $errorToolTipContainer,    // error tooltip container
+        $errorToolTipContent;      // errot tooltip content holder
     
     var TOOLTIP_BOUNDS_OFFSET          = 8;    // offset between tooltip and position of the cursor / or bounds of the editor
 
-    
+    /**
+     * and error maps containing information about the last linting session
+     */
     var errorsMap;
+    
     
     // Text Marks management ------------------------------------------------
     
@@ -40,7 +43,7 @@ define(function (require, exports, module) {
     }
     
     /**
-     * for a set of errors mark corresponding portion of text in the editor
+     * For all errors described in errorsMap mark corresponding part of the code
      */
     function markErrors() {
         if (!errorsMap) {
@@ -51,6 +54,8 @@ define(function (require, exports, module) {
         
         _markers = _.flatten(Object.keys(errorsMap).map(function (line) {
             return errorsMap[line].map(function (lineError) {
+                // if every errors at that position are warning we display a warning
+                // else we display an error
                 var type = lineError.errors.reduce(function (type, error) {
                     if (error.type === CodeInspection.Type.ERROR) {
                         return CodeInspection.Type.ERROR;
@@ -63,19 +68,27 @@ define(function (require, exports, module) {
                     'linter-error'
                 ;
                 
-                return editor._codeMirror.markText(lineError.pos, lineError.endpos, {  className: className  });
+                return editor._codeMirror.markText(lineError.pos, lineError.endpos, {  
+                    className: className  
+                });
             });
         }));
     }
     
     // Tooltip widget management ----------------------------------------------
     
-    
+    /**
+     * hide the error tooltip
+     */
     function hideErrorToolTip() {
         $errorToolTipContainer.hide();
         $errorToolTipContent.html('');
     }
     
+    /**
+     * helpers function that determines if an element contains 
+     * the given mouse events
+     */
     function divContainsMouse($div, event) {
         var offset = $div.offset();
         
@@ -85,7 +98,11 @@ define(function (require, exports, module) {
                 event.clientY <= offset.top + $div.height());
     }
     
-    function getErrorForPos(pos) {
+    /**
+     * if the errorsMap contains errors for the given position returns that error
+     * else returns null
+     */
+    function getLineErrorForPos(pos) {
         var lineErrors;
         if (errorsMap && (lineErrors = errorsMap[pos.line])) {
             for (var i =0, l = lineErrors.length; i < l; i++) {
@@ -98,12 +115,16 @@ define(function (require, exports, module) {
         return null;
     }
     
+    /**
+     * position the tooltip below the marked error, centered
+     * but always in the bound of the editor
+     */
     function positionToolTip(xpos, ypos, ybot) {
         var toolTipWidth  = $errorToolTipContainer.width(),
             toolTipHeight = $errorToolTipContainer.height(),
             top           = ybot + TOOLTIP_BOUNDS_OFFSET,
             left          = xpos - (toolTipWidth / 2 ),
-            $editorHolder = $("#editor-holder"),
+            $editorHolder = $('#editor-holder'),
             editorOffset = $editorHolder.offset();
         
 
@@ -111,15 +132,15 @@ define(function (require, exports, module) {
         left = Math.min(left, editorOffset.left + $editorHolder.width() - toolTipWidth - TOOLTIP_BOUNDS_OFFSET - 10); 
         
         if (top < (editorOffset.top + $editorHolder.height() - toolTipHeight - TOOLTIP_BOUNDS_OFFSET)) {
-            $errorToolTipContainer.removeClass("preview-bubble-above");
-            $errorToolTipContainer.addClass("preview-bubble-below");
+            $errorToolTipContainer.removeClass('preview-bubble-above');
+            $errorToolTipContainer.addClass('preview-bubble-below');
             $errorToolTipContainer.offset({
                 left: left,
                 top: top
             });
         } else {
-            $errorToolTipContainer.removeClass("preview-bubble-below");
-            $errorToolTipContainer.addClass("preview-bubble-above");
+            $errorToolTipContainer.removeClass('preview-bubble-below');
+            $errorToolTipContainer.addClass('preview-bubble-above');
             top = ypos - TOOLTIP_BOUNDS_OFFSET - toolTipHeight;
             $errorToolTipContainer.offset({
                 left: left,
@@ -129,7 +150,9 @@ define(function (require, exports, module) {
     }
     
     
-    
+    /**
+     * last position handled 
+     */
     var lastPos;
     function handleMouseMove() {
         if (event.which) {
@@ -161,7 +184,7 @@ define(function (require, exports, module) {
             return;
         }
         
-        var lineError = getErrorForPos(pos);
+        var lineError = getLineErrorForPos(pos);
         if (lineError) {
             $errorToolTipContent.html(lineError.errors.map(function (error) {
                 return error.message;    
@@ -176,12 +199,19 @@ define(function (require, exports, module) {
     // Linter management ------------------------------------------------------
     
     /**
+     * indicate if a document has changed or if something has changed inside a document 
+     * between 2 linting session
+     */
+    
+    var changeOccured = true;
+    
+    /**
      * the current document in the editor
      */
     var _currentDoc;
     
     /**
-     * manage change event listener on document
+     * manage change event listener on the document
      */
     function setCurrentDocument(document) {
         if (_currentDoc === document) {
@@ -201,20 +231,64 @@ define(function (require, exports, module) {
         }
     }
     
-    
+    /**
+     * handle change inside of the document
+     */
     function documentChangeHandler() {
         hideErrorToolTip();
         changeOccured = true;
         scheduleRun();
     }
     
+    /**
+     * compare to codemirror position
+     */
+    function isInferiorOrEqual(pos1, pos2) {
+        // null equals null
+        if (!pos1 && !pos2) {
+            return true;
+        }
+        // not null superior to null
+        if (pos1 && !pos2) {
+            return false;
+        }
+        
+        //  null inferior to null
+        if (!pos1 && pos2) {
+            return true;
+        }
+        
+        //first compare line
+        if (pos1.line < pos2.line) {
+            return true;
+        } else if (pos1.line > pos2.line) {
+            return false;
+        //compare ch
+        } else if (pos1.ch > pos2.ch) {
+            return false;
+        } else {
+            return true;
+        }
+    }
     
-    var _currentPromise, 
-        changeOccured = true;
+    /**
+     * Promise of the returned by the last call to inspectFile or null if linting is disabled. Used to prevent any stale promises
+     * to cause updates of the UI.
+     *
+     * @private
+     * @type {$.Promise}
+     */
+    var _currentPromise;
+       
+    /**
+     * Run the inspector
+     */
     function run() {
         setCurrentDocument(DocumentManager.getCurrentDocument());
         
-        if (!_currentDoc ||!changeOccured) {
+        // if there is no document open, or if no change has occured since the last 
+        // session we does not need to rerun the inspection
+        if (!_currentDoc || !changeOccured) {
             return;
         }
         
@@ -222,11 +296,13 @@ define(function (require, exports, module) {
         changeOccured = false;
 
         (_currentPromise = CodeInspection.inspectFile(_currentDoc.file)).then(function (results) {
-            // check if promise has not changed while inspectFile was running
+            // if the promise has changed or if change occured while inspectFile was running
+            // we delegate the works to the next session
             if (this !== _currentPromise || !results || changeOccured) {
                 return;
             }
 
+            //build the error map
             errorsMap = results.reduce(function (errorsMap, item) { 
                 if (item.result && item.result.errors) {
                     errorsMap = item.result.errors.reduce( function (errorsMap, error) {
@@ -235,18 +311,23 @@ define(function (require, exports, module) {
                             message = error.message,
                             type = error.type;
                         
+                        //invalid error
                         if (!pos || pos.line < 0) {
                             return errorsMap;
                         }
                         
                         if (!endpos) {
+                            // we try to create an endpos for the mark 
+                            // firstly by retrieving the token next to the error position
                             var cm = _currentDoc._masterEditor._codeMirror,
                                 token = cm. getTokenAt({
                                     line: pos.line,
                                     ch: pos.ch + 1
                                 }),
-                                index = token.end;
+                                index = token ? token.end : -1;
                             
+                            // if no token has been retrieved we just put the end position 
+                            // at the end of the line
                             if (index < pos.ch) {
                                 var line = _currentDoc.getLine(pos.line);
                                 if (typeof line === 'undefined') {
@@ -261,18 +342,20 @@ define(function (require, exports, module) {
                             };
                         }
                         
+                        // in case the error is at the end of the line (like missing semilicon)
+                        // we put the error 1 char before 
                         if (endpos.line === pos.line && endpos.ch === pos.ch && pos.ch > 0) {
                             pos.ch --;
                         }
                         
                         var lineErrors =  errorsMap[pos.line] || (errorsMap[pos.line] = []);
                            
-                       
+                        //regrou errors that overlap
                         for (var i = 0, l = lineErrors.length; i < l; i++) {
                             var lineErr = lineErrors[i];
                             
-                            //need to compare lines here also
-                            if (pos.ch <= lineErr.endpos.ch && endpos.ch >= lineErr.pos.ch) {
+                            //if errors overlap merge
+                            if (isInferiorOrEqual(pos,lineErr) && isInferiorOrEqual(lineErr.pos, endpos)) {
                                 lineErr.errors.push({
                                     message: message,
                                     type: type
@@ -280,6 +363,7 @@ define(function (require, exports, module) {
                                 return errorsMap;
                             }
                         }
+                        //else add a new error
                         lineErrors.push({
                             pos: pos,
                             endpos: endpos,
@@ -299,12 +383,19 @@ define(function (require, exports, module) {
         });
     }
     
+    /**
+     * timer used to delay inspection runs
+     */
     var timer;
+    
+    /**
+     * schedule a new run session
+     */
     function scheduleRun() {
         if (timer) {
             clearTimeout(timer);
         }
-        timer = setTimeout(run, 1000);
+        timer = setTimeout(run, 500);
     }
     
     
@@ -314,15 +405,11 @@ define(function (require, exports, module) {
     
     // Bootstraping ----------------------------------------------
     
+    //load 
     ExtensionUtils.loadStyleSheet(module, 'style/style.css');
     
-    var _codeInspectionRegister = CodeInspection.register;
-    CodeInspection.register = function register() {
-        _codeInspectionRegister.apply(CodeInspection, arguments);
-        run();
-    };
-    
     AppInit.appReady(function () {
+        // we listen to the same events than CodeInspection
         $(DocumentManager)
                 .on('currentDocumentChange', function () {
                     run();
@@ -332,16 +419,17 @@ define(function (require, exports, module) {
                         run();
                     }
                 });
-        var editorHolder = $("#editor-holder")[0];
-        // Note: listening to "scroll" also catches text edits, which bubble a scroll event up from the hidden text area. This means
+        
+        var editorHolder = $('#editor-holder')[0];
+        // Note: listening to 'scroll' also catches text edits, which bubble a scroll event up from the hidden text area. This means
         // we auto-hide on text edit, which is probably actually a good thing.
-        editorHolder.addEventListener("mousemove", handleMouseMove, true);
-        editorHolder.addEventListener("scroll", hideErrorToolTip, true);
-        editorHolder.addEventListener("mouseout", hideErrorToolTip, true);
+        editorHolder.addEventListener('mousemove', handleMouseMove, true);
+        editorHolder.addEventListener('scroll', hideErrorToolTip, true);
+        editorHolder.addEventListener('mouseout', hideErrorToolTip, true);
         
         
-        $errorToolTipContainer = $(errorToolTipHTML).appendTo($("body"));
-        $errorToolTipContent = $errorToolTipContainer.find(".error-tooltip-content");
+        $errorToolTipContainer = $(errorToolTipHTML).appendTo($('body'));
+        $errorToolTipContent = $errorToolTipContainer.find('.error-tooltip-content');
         
         setTimeout(run, 500);
     });
