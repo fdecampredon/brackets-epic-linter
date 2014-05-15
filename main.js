@@ -355,7 +355,7 @@ define(function (require, exports, module) {
                             var lineErr = lineErrors[i];
                             
                             //if errors overlap merge
-                            if (isInferiorOrEqual(pos,lineErr) && isInferiorOrEqual(lineErr.pos, endpos)) {
+                            if (isInferiorOrEqual(pos, lineErr.endpos) && isInferiorOrEqual(lineErr.pos, endpos)) {
                                 lineErr.errors.push({
                                     message: message,
                                     type: type
