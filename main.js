@@ -11,7 +11,8 @@ define(function (require, exports, module) {
     
     
     var errorsMarks = require('./errorsMarks'),
-        errorToolTip = require('./errorToolTip');
+        errorToolTip = require('./errorToolTip'),
+        errorsTick  = require('./errorsTick');
     
     // Linter management ------------------------------------------------------
     
@@ -37,6 +38,7 @@ define(function (require, exports, module) {
         
         if (_currentDoc) {
             $(_currentDoc).off('change', documentChangeHandler);
+            errorsTick.setVisible(_currentDoc._masterEditor, false);
         }
         
         _currentDoc = document;
@@ -44,6 +46,7 @@ define(function (require, exports, module) {
         
         if (_currentDoc) {
             $(_currentDoc).on('change', documentChangeHandler);
+            errorsTick.setVisible(_currentDoc._masterEditor, true);
         }
     }
     
@@ -109,6 +112,7 @@ define(function (require, exports, module) {
         }
         
         errorsMarks.removeAllMarks();
+        errorsTick.clear();
         changeOccured = false;
 
         (_currentPromise = CodeInspection.inspectFile(_currentDoc.file)).then(function (results) {
@@ -203,6 +207,7 @@ define(function (require, exports, module) {
             
             errorsMarks.markErrors(_currentDoc._masterEditor, errorsMap);
             errorToolTip.setErrorsMap(errorsMap);
+            errorsTick.renderTicks(errorsMap);
         });
     }
     
