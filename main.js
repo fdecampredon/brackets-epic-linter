@@ -1,4 +1,4 @@
-/*jslint browser:true, devel:true*/
+/*jslint browser:true, devel:true, unused: true*/
 /*global define, brackets, $ */
 
 define(function (require, exports, module) {
@@ -7,194 +7,11 @@ define(function (require, exports, module) {
     var AppInit          = brackets.getModule('utils/AppInit'),
         ExtensionUtils   = brackets.getModule('utils/ExtensionUtils'),
         DocumentManager  = brackets.getModule('document/DocumentManager'),
-        CodeInspection   = brackets.getModule('language/CodeInspection'),
-        EditorManager    = brackets.getModule('editor/EditorManager'),
-        _                = brackets.getModule('thirdparty/lodash');
+        CodeInspection   = brackets.getModule('language/CodeInspection');
     
     
-    var errorToolTipHTML  = require('text!errortoolip.html'),
-        $errorToolTipContainer,    // error tooltip container
-        $errorToolTipContent;      // errot tooltip content holder
-    
-    var TOOLTIP_BOUNDS_OFFSET          = 8;    // offset between tooltip and position of the cursor / or bounds of the editor
-
-    /**
-     * and error maps containing information about the last linting session
-     */
-    var errorsMap;
-    
-    
-    // Text Marks management ------------------------------------------------
-    
-    /**
-     * List of CodeMirror Text markers currently displayed by the editor
-     */
-    var _markers;
-    
-    /**
-     * remove all markers
-     */
-    function removeAllMarks() {
-        if (_markers) {
-            _markers.forEach(function (marker) {
-                marker.clear();
-            });
-        } 
-    }
-    
-    /**
-     * For all errors described in errorsMap mark corresponding part of the code
-     */
-    function markErrors() {
-        if (!errorsMap) {
-            return;
-        }
-        
-        var editor = _currentDoc._masterEditor;
-        
-        _markers = _.flatten(Object.keys(errorsMap).map(function (line) {
-            return errorsMap[line].map(function (lineError) {
-                // if every errors at that position are warning we display a warning
-                // else we display an error
-                var type = lineError.errors.reduce(function (type, error) {
-                    if (error.type === CodeInspection.Type.ERROR) {
-                        return CodeInspection.Type.ERROR;
-                    }
-                    return type;
-                }, CodeInspection.Type.WARNING);
-                
-                var className = type === CodeInspection.Type.WARNING ? 
-                    'linter-warning' : 
-                    'linter-error'
-                ;
-                
-                return editor._codeMirror.markText(lineError.pos, lineError.endpos, {  
-                    className: className  
-                });
-            });
-        }));
-    }
-    
-    // Tooltip widget management ----------------------------------------------
-    
-    /**
-     * hide the error tooltip
-     */
-    function hideErrorToolTip() {
-        $errorToolTipContainer.hide();
-        $errorToolTipContent.html('');
-    }
-    
-    /**
-     * helpers function that determines if an element contains 
-     * the given mouse events
-     */
-    function divContainsMouse($div, event) {
-        var offset = $div.offset();
-        
-        return (event.clientX >= offset.left &&
-                event.clientX <= offset.left + $div.width() &&
-                event.clientY >= offset.top &&
-                event.clientY <= offset.top + $div.height());
-    }
-    
-    /**
-     * if the errorsMap contains errors for the given position returns that error
-     * else returns null
-     */
-    function getLineErrorForPos(pos) {
-        var lineErrors;
-        if (errorsMap && (lineErrors = errorsMap[pos.line])) {
-            for (var i =0, l = lineErrors.length; i < l; i++) {
-                var error = lineErrors[i];
-                if (pos.ch >= error.pos.ch && pos.ch <= error.endpos.ch) {
-                    return error;
-                }
-            }
-        }
-        return null;
-    }
-    
-    /**
-     * position the tooltip below the marked error, centered
-     * but always in the bound of the editor
-     */
-    function positionToolTip(xpos, ypos, ybot) {
-        var toolTipWidth  = $errorToolTipContainer.width(),
-            toolTipHeight = $errorToolTipContainer.height(),
-            top           = ybot + TOOLTIP_BOUNDS_OFFSET,
-            left          = xpos - (toolTipWidth / 2 ),
-            $editorHolder = $('#editor-holder'),
-            editorOffset = $editorHolder.offset();
-        
-
-        left = Math.max(left, editorOffset.left + TOOLTIP_BOUNDS_OFFSET);
-        left = Math.min(left, editorOffset.left + $editorHolder.width() - toolTipWidth - TOOLTIP_BOUNDS_OFFSET - 10); 
-        
-        if (top < (editorOffset.top + $editorHolder.height() - toolTipHeight - TOOLTIP_BOUNDS_OFFSET)) {
-            $errorToolTipContainer.removeClass('preview-bubble-above');
-            $errorToolTipContainer.addClass('preview-bubble-below');
-            $errorToolTipContainer.offset({
-                left: left,
-                top: top
-            });
-        } else {
-            $errorToolTipContainer.removeClass('preview-bubble-below');
-            $errorToolTipContainer.addClass('preview-bubble-above');
-            top = ypos - TOOLTIP_BOUNDS_OFFSET - toolTipHeight;
-            $errorToolTipContainer.offset({
-                left: left,
-                top: top
-            });
-        }
-    }
-    
-    
-    /**
-     * last position handled 
-     */
-    var lastPos;
-    function handleMouseMove() {
-        if (event.which) {
-            // Button is down - don't show popovers while dragging
-            hideErrorToolTip();
-            return;
-        }
-        
-        var editor = EditorManager.getCurrentFullEditor();
-        
-        if (!editor || !divContainsMouse($(editor.getRootElement()), event)) {
-            hideErrorToolTip();
-            return;
-        }
-        // Find char mouse is over
-        var cm = editor._codeMirror,
-            pos = cm.coordsChar({left: event.clientX, top: event.clientY}),
-            showImmediately = false;
-
-        // Bail if mouse is on same char as last event
-        if (lastPos && lastPos.line === pos.line && lastPos.ch === pos.ch) {
-            return;
-        }
-        lastPos = pos;
-
-        // No preview if mouse is past last char on line
-        if (pos.ch >= editor.document.getLine(pos.line).length) {
-            hideErrorToolTip();
-            return;
-        }
-        
-        var lineError = getLineErrorForPos(pos);
-        if (lineError) {
-            $errorToolTipContent.html(lineError.errors.map(function (error) {
-                return error.message;    
-            }).join('<br/>'));
-            var coord = cm.charCoords(pos);
-            $errorToolTipContainer.show();
-            positionToolTip(coord.left, coord.top, coord.bottom);
-        }
-    }
-    
+    var errorsMarks = require('./errorsMarks'),
+        errorToolTip = require('./errorToolTip');
     
     // Linter management ------------------------------------------------------
     
@@ -218,7 +35,6 @@ define(function (require, exports, module) {
             return;
         }
         
-        var editor;
         if (_currentDoc) {
             $(_currentDoc).off('change', documentChangeHandler);
         }
@@ -235,7 +51,6 @@ define(function (require, exports, module) {
      * handle change inside of the document
      */
     function documentChangeHandler() {
-        hideErrorToolTip();
         changeOccured = true;
         scheduleRun();
     }
@@ -272,7 +87,8 @@ define(function (require, exports, module) {
     }
     
     /**
-     * Promise of the returned by the last call to inspectFile or null if linting is disabled. Used to prevent any stale promises
+     * Promise of the returned by the last call to inspectFile or null if linting is disabled. 
+     * Used to prevent any stale promises
      * to cause updates of the UI.
      *
      * @private
@@ -292,7 +108,7 @@ define(function (require, exports, module) {
             return;
         }
         
-        removeAllMarks();
+        errorsMarks.removeAllMarks();
         changeOccured = false;
 
         (_currentPromise = CodeInspection.inspectFile(_currentDoc.file)).then(function (results) {
@@ -303,7 +119,7 @@ define(function (require, exports, module) {
             }
 
             //build the error map
-            errorsMap = results.reduce(function (errorsMap, item) { 
+            var errorsMap = results.reduce(function (errorsMap, item) { 
                 if (item.result && item.result.errors) {
                     errorsMap = item.result.errors.reduce( function (errorsMap, error) {
                         var pos = error.pos,
@@ -384,8 +200,9 @@ define(function (require, exports, module) {
                 }
                 return errorsMap;
             }, {});
-
-            markErrors();
+            
+            errorsMarks.markErrors(_currentDoc._masterEditor, errorsMap);
+            errorToolTip.setErrorsMap(errorsMap);
         });
     }
     
@@ -403,10 +220,6 @@ define(function (require, exports, module) {
         }
         timer = setTimeout(run, 500);
     }
-    
-    
-   
-    
 
     
     // Bootstraping ----------------------------------------------
@@ -425,17 +238,8 @@ define(function (require, exports, module) {
                         run();
                     }
                 });
-        
-        var editorHolder = $('#editor-holder')[0];
-        // Note: listening to 'scroll' also catches text edits, which bubble a scroll event up from the hidden text area. This means
-        // we auto-hide on text edit, which is probably actually a good thing.
-        editorHolder.addEventListener('mousemove', handleMouseMove, true);
-        editorHolder.addEventListener('scroll', hideErrorToolTip, true);
-        editorHolder.addEventListener('mouseout', hideErrorToolTip, true);
-        
-        
-        $errorToolTipContainer = $(errorToolTipHTML).appendTo($('body'));
-        $errorToolTipContent = $errorToolTipContainer.find('.error-tooltip-content');
+   
+        errorToolTip.init();
         
         scheduleRun();
     });
