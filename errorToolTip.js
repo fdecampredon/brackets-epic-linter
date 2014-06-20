@@ -7,7 +7,10 @@ define(function (require) {
     var EditorManager    = brackets.getModule('editor/EditorManager');
     
     var errorToolTipHTML  = require('text!errortoolip.html'),
-        $errorToolTipContainer,    // error tooltip container
+        errorsTick        = require('./errorsTick'),
+        _                 = brackets.getModule('thirdparty/lodash');
+    
+    var $errorToolTipContainer,    // error tooltip container
         $errorToolTipContent;      // errot tooltip content holder
     
     var TOOLTIP_BOUNDS_OFFSET          = 8;    // offset between tooltip and position of the cursor / or bounds of the editor
@@ -125,24 +128,39 @@ define(function (require) {
         }
         lastPos = pos;
 
+        var lineErrors, coord;
         // No preview if mouse is past last char on line
         if (pos.ch >= editor.document.getLine(pos.line).length) {
-            hideErrorToolTip();
-            return;
+            lineErrors = errorsTick.getErrorsForMouse(event);
+            if (!lineErrors.length) {
+                hideErrorToolTip();
+                return;
+            }
+            coord = {
+                left: event.clientX,
+                top: event.clientY,
+                bottom: event.clientY
+            };
+        } else {
+            var lineError = getLineErrorForPos(pos);
+            if (!lineError) {
+                hideErrorToolTip();
+                return;
+            }
+            lineErrors = [lineError];
+            coord = cm.charCoords(pos);
         }
         
-        var lineError = getLineErrorForPos(pos);
-        /*if (!lineError) {
-            errorTicks.get
-        }*/
-        if (lineError) {
-            $errorToolTipContent.html(lineError.errors.map(function (error) {
-                return error.message;    
-            }).join('<br/>'));
-            var coord = cm.charCoords(pos);
-            $errorToolTipContainer.show();
-            positionToolTip(coord.left, coord.top, coord.bottom);
-        }
+        $errorToolTipContent.html(
+            _.flatten(lineErrors.map(function (lineError) {
+                return lineError.errors.map(function (error) {
+                    return error.message;    
+                });
+            })).join('<br/>')
+        );
+        
+        $errorToolTipContainer.show();
+        positionToolTip(coord.left, coord.top, coord.bottom);
     }
     
     

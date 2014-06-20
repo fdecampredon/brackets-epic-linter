@@ -192,32 +192,40 @@ define(function (require, exports, module) {
             precisionY = 0;
         }
         
-        return (event.clientX >= offset.left + precisionY &&
+        return (event.clientX >= offset.left - precisionX &&
                 event.clientX <= offset.left + $div.width() + precisionX &&
                 event.clientY >= offset.top - precisionY &&
                 event.clientY <= offset.top + $div.height() + precisionY);
     }
     
     function handleMouseClick(event) {
-        if (!divContainsMouse($overlay, event)) {
+        var errors = getErrorsForMouse(event);
+        if (!errors.length) {
             return;
+        }
+        
+        editor.setSelection(errors[0].endpos, null, true);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+    
+    function getErrorsForMouse(event) {
+        if(!$overlay) {
+            return [];
+        }
+        if (!divContainsMouse($overlay, event)) {
+            return [];
         }
         var ticks = $overlay.find('.tickmark-error').filter(function () {
             return divContainsMouse($(this), event, 2, 5);
         });
         
         if (ticks.length === 0) {
-            return;
-        }
-        var line = ticks[0].dataset.errorLine;
-        var error  = errorsMap[line][0];
-        if (!error) {
-            return;
+            return [];
         }
         
-        editor.setSelection(error.endpos, null, true);
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        var line = ticks[0].dataset.errorLine;
+        return errorsMap[line] ||  [];
     }
     
     
@@ -226,8 +234,9 @@ define(function (require, exports, module) {
         editorHolder.addEventListener('click', handleMouseClick, true);
     }
     
-    exports.init            = init;
-    exports.setErrorsMap    = setErrorsMap;
-    exports.clear           = clear;
-    exports.setVisible      = setVisible;
+    exports.init                = init;
+    exports.getErrorsForMouse   = getErrorsForMouse;
+    exports.setErrorsMap        = setErrorsMap;
+    exports.clear               = clear;
+    exports.setVisible          = setVisible;
 });
