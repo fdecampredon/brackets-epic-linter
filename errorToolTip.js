@@ -4,11 +4,12 @@
 define(function (require) {
     'use strict';
     
-    var EditorManager    = brackets.getModule('editor/EditorManager');
+    var EditorManager    = brackets.getModule('editor/EditorManager'),
+        _                 = brackets.getModule('thirdparty/lodash');
     
     var errorToolTipHTML  = require('text!errortoolip.html'),
         errorsTick        = require('./errorsTick'),
-        _                 = brackets.getModule('thirdparty/lodash');
+        divContainsMouse = require('./utils').divContainsMouse;
     
     var $errorToolTipContainer,    // error tooltip container
         $errorToolTipContent;      // errot tooltip content holder
@@ -36,18 +37,7 @@ define(function (require) {
         $errorToolTipContent.html('');
     }
     
-    /**
-     * helpers function that determines if an element contains 
-     * the given mouse events
-     */
-    function divContainsMouse($div, event) {
-        var offset = $div.offset();
-        
-        return (event.clientX >= offset.left &&
-                event.clientX <= offset.left + $div.width() &&
-                event.clientY >= offset.top &&
-                event.clientY <= offset.top + $div.height());
-    }
+    
     
     /**
      * if the errorsMap contains errors for the given position returns that error
@@ -138,7 +128,7 @@ define(function (require) {
             }
             coord = {
                 left: event.clientX,
-                top: event.clientY,
+                top: event.clientY, 
                 bottom: event.clientY
             };
         } else {
@@ -163,6 +153,12 @@ define(function (require) {
         positionToolTip(coord.left, coord.top, coord.bottom);
     }
     
+    function handleMouseOut(event) {
+        var $editorHolder = $('#editor-holder');
+        if (!divContainsMouse($editorHolder, event, 10, 10)) {
+            hideErrorToolTip();
+        }
+    }
     
     
     
@@ -173,7 +169,7 @@ define(function (require) {
         // we auto-hide on text edit, which is probably actually a good thing.
         editorHolder.addEventListener('mousemove', handleMouseMove, true);
         editorHolder.addEventListener('scroll', hideErrorToolTip, true);
-        editorHolder.addEventListener('mouseout', hideErrorToolTip, true);
+        editorHolder.addEventListener('mouseout', handleMouseOut, true);
         
         
         $errorToolTipContainer = $(errorToolTipHTML).appendTo($('body'));

@@ -40,6 +40,8 @@ define(function (require, exports, module) {
         PanelManager        = brackets.getModule('view/PanelManager'),
         CodeInspection      = brackets.getModule('language/CodeInspection');
     
+    var divContainsMouse = require('./utils').divContainsMouse;
+    
      /**
      * Editor the markers are currently shown for, or null if not shown
      * @type {?Editor}
@@ -182,21 +184,7 @@ define(function (require, exports, module) {
     }
     
     
-    function divContainsMouse($div, event, precisionX, precisionY) {
-        var offset = $div.offset();
-        
-        if (typeof precisionX !== 'number') {
-            precisionX = 0;
-        }
-        if (typeof precisionY !== 'number') {
-            precisionY = 0;
-        }
-        
-        return (event.clientX >= offset.left - precisionX &&
-                event.clientX <= offset.left + $div.width() + precisionX &&
-                event.clientY >= offset.top - precisionY * 2 &&
-                event.clientY <= offset.top + $div.height() + precisionY);
-    }
+    
     
     function handleMouseClick(event) {
         var errors = getErrorsForMouse(event);
