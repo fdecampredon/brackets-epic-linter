@@ -20,7 +20,6 @@ define(function (require, exports, module) {
      * indicate if a document has changed or if something has changed inside a document 
      * between 2 linting session
      */
-    
     var changeOccured = true;
     
     /**
@@ -207,7 +206,7 @@ define(function (require, exports, module) {
             
             errorsMarks.markErrors(_currentDoc._masterEditor, errorsMap);
             errorToolTip.setErrorsMap(errorsMap);
-            errorsTick.renderTicks(errorsMap);
+            errorsTick.setErrorsMap(errorsMap);
         });
     }
     

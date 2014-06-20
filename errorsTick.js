@@ -2,7 +2,7 @@
  * Copyright (c) 2013 Adobe Systems Incorporated. All rights reserved.
  *  
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
+ * copy of this software and associated documentation files (the 'Software'), 
  * to deal in the Software without restriction, including without limitation 
  * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
  * and/or sell copies of the Software, and to permit persons to whom the 
@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *  
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
@@ -31,31 +31,46 @@
  * It is assumed that markers are always clear()ed when switching editors.
  */
 define(function (require, exports, module) {
-    "use strict";
+    'use strict';
     
-    var _ = brackets.getModule("thirdparty/lodash");
+    var _ = brackets.getModule('thirdparty/lodash');
     
-    var Editor              = brackets.getModule("editor/Editor"),
-        EditorManager       = brackets.getModule("editor/EditorManager"),
-        PanelManager        = brackets.getModule("view/PanelManager");
+    var Editor              = brackets.getModule('editor/Editor'),
+        EditorManager       = brackets.getModule('editor/EditorManager'),
+        PanelManager        = brackets.getModule('view/PanelManager'),
+        CodeInspection      = brackets.getModule('language/CodeInspection');
     
-    
-    /** @type {?Editor} Editor the markers are currently shown for, or null if not shown */
+     /**
+     * Editor the markers are currently shown for, or null if not shown
+     * @type {?Editor}
+     */
     var editor;
     
-    /** @type {number} Top of scrollbar track area, relative to top of scrollbar */
+    /**
+     * Top of scrollbar track area, relative to top of scrollbar
+     * @type {number}
+     */
     var trackOffset;
     
-    /** @type {number} Height of scrollbar track area */
+    /**
+     * Height of scrollbar track area
+     * @type {number}
+     */
     var trackHt;
     
-    /** @type {!Array.<{line: number, ch: number}>} Text positions of markers */
-    var errorsMap = null;
+    /**
+     * Text positions of markers
+     * @type {!Array.<{line: number, ch: number}>}
+     */
+    var errorsMap = {};
+    
+    
+    var $overlay;
     
     
     function _getScrollbar(editor) {
         // Be sure to select only the direct descendant, not also elements within nested inline editors
-        return $(editor.getRootElement()).children(".CodeMirror-vscrollbar");
+        return $(editor.getRootElement()).children('.CodeMirror-vscrollbar');
     }
     
     /** Measure scrollbar track */
@@ -66,9 +81,9 @@ define(function (require, exports, module) {
         
         if (trackHt > 0) {
             // Scrollbar visible: determine offset of track from top of scrollbar
-            if (brackets.platform === "win") {
+            if (brackets.platform === 'win') {
                 trackOffset = 0;  // Custom scrollbar CSS has no gap around the track
-            } else if (brackets.platform === "mac") {
+            } else if (brackets.platform === 'mac') {
                 trackOffset = 4;  // Native scrollbar has padding around the track
             } else { //(Linux)
                 trackOffset = 2;  // Custom scrollbar CSS has assymmetrical gap; this approximates it
@@ -77,26 +92,35 @@ define(function (require, exports, module) {
             
         } else {
             // No scrollbar: use the height of the entire code content
-            var codeContainer = $(editor.getRootElement()).find("> .CodeMirror-scroll > .CodeMirror-sizer > div > .CodeMirror-lines > div")[0];
+            var codeContainer = $(editor.getRootElement()).find('> .CodeMirror-scroll > .CodeMirror-sizer > div > .CodeMirror-lines > div')[0];
             trackHt = codeContainer.offsetHeight;
             trackOffset = codeContainer.offsetTop;
         }
     }
 
     /** Add all the given tickmarks to the DOM in a batch */
-    function renderTicks(_errorsMap) {
-        errorsMap = _errorsMap;
-        if (!errorsMap) {
-            return;
-        }
-        var html = "";
-        Object.keys(errorsMap).forEach(function (line) {
+    function _renderTicks(errorsMap) {
+        var html = Object.keys(errorsMap).map(function (line) {
             var top = Math.round(line / editor.lineCount() * trackHt) + trackOffset;
             top--;  // subtract ~1/2 the ht of a tickmark to center it on ideal pos
             
-            html += "<div class='tickmark' style='top:" + top + "px'></div>";
-        });
-        $(".tickmark-track", editor.getRootElement()).append($(html));
+            var type = _.flatten(errorsMap[line].map(function (lineError) {
+                return lineError.errors;
+            })).reduce(function (type, error) {
+                if (error.type === CodeInspection.Type.ERROR) {
+                    return CodeInspection.Type.ERROR;
+                }
+                return type;
+            }, CodeInspection.Type.WARNING);
+
+            var className = type === CodeInspection.Type.WARNING ? 
+                'tickmark-warning' : 
+                'tickmark-error'
+            ;
+            return '<div class="'+className+'" style="top:' + top + 'px" data-error-line="' + line + '" ></div>';
+        }).join('');
+        
+        $('.tickmark-track-error', editor.getRootElement()).append($(html));
     }
     
     
@@ -106,7 +130,8 @@ define(function (require, exports, module) {
      */
     function clear() {
         if (editor) {
-            $(".tickmark-track", editor.getRootElement()).empty();
+            $('.tickmark-track-error', editor.getRootElement()).empty();
+            errorsMap = {};
         }
     }
     
@@ -127,33 +152,35 @@ define(function (require, exports, module) {
             }
             
             var $sb = _getScrollbar(editor);
-            var $overlay = $("<div class='tickmark-track'></div>");
+            $overlay = $('<div class="tickmark-track-error"></div>');
             $sb.parent().append($overlay);
             
             _calcScaling();
             
             // Update tickmarks during editor resize (whenever resizing has paused/stopped for > 1/3 sec)
-            $(PanelManager).on("editorAreaResize.ScrollTrackMarkers", _.debounce(function () {
-                if (errorsMap && Object.keys(errorsMap).length) {
+            $(PanelManager).on('editorAreaResize.errorTicks', _.debounce(function () {
+                if (Object.keys(errorsMap).length) {
                     _calcScaling();
-                    $(".tickmark-track", editor.getRootElement()).empty();
-                    renderTicks(errorsMap);
+                    $overlay.empty();
+                    _renderTicks(errorsMap);
                 }
             }, 300));
             
+    
         } else {
-            console.assert(editor === curEditor);
-            $(".tickmark-track", curEditor.getRootElement()).remove();
+            $overlay.remove();
             editor = null;
-            errorsMap = null;
-            $(PanelManager).off("editorAreaResize.ScrollTrackMarkers");
+            errorsMap = {};
+            $(PanelManager).off('editorAreaResize.errorTicks');
         }
     }
     
+    function setErrorsMap(value) {
+        errorsMap = value || {};
+        _renderTicks(errorsMap);
+    }
     
-
-
+    exports.setErrorsMap    = setErrorsMap;
     exports.clear           = clear;
     exports.setVisible      = setVisible;
-    exports.renderTicks     = renderTicks;
 });

@@ -31,3 +31,35 @@
     box-shadow: 0 3px 9px rgba(0, 0, 0, 0.24);
     display: none;
 }
+
+
+.tickmark-track-error {
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    right: 0;
+    width: 12px;
+    z-index: 15;
+    pointer-events: none;
+}
+
+.tickmark-track-error .tickmark-error {
+    position: absolute;
+    width: 12px;
+    height: 1px;
+    background-color: #FF0000;
+    border-top: 1px solid #E10000;
+    border-bottom: 1px solid #D40000;
+    opacity: 0.85;
+}
+
+
+.tickmark-track-error .tickmark-warning {
+    position: absolute;
+    width: 12px;
+    height: 1px;
+    background-color: #F89406;
+    border-top: 1px solid #E39406;
+    border-bottom: 1px solid #D19406;
+    opacity: 0.85;
+}
