@@ -6,7 +6,6 @@ define(function (require) {
     
     var EditorManager    = brackets.getModule('editor/EditorManager');
     
-    
     var errorToolTipHTML  = require('text!errortoolip.html'),
         $errorToolTipContainer,    // error tooltip container
         $errorToolTipContent;      // errot tooltip content holder
@@ -103,7 +102,7 @@ define(function (require) {
      * last position handled 
      */
     var lastPos;
-    function handleMouseMove() {
+    function handleMouseMove(event) {
         if (event.which) {
             // Button is down - don't show popovers while dragging
             hideErrorToolTip();
@@ -133,6 +132,9 @@ define(function (require) {
         }
         
         var lineError = getLineErrorForPos(pos);
+        /*if (!lineError) {
+            errorTicks.get
+        }*/
         if (lineError) {
             $errorToolTipContent.html(lineError.errors.map(function (error) {
                 return error.message;    
