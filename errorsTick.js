@@ -169,6 +169,7 @@ define(function (require, exports, module) {
     
         } else {
             $overlay.remove();
+            $overlay = null;
             editor = null;
             errorsMap = {};
             $(PanelManager).off('editorAreaResize.errorTicks');
@@ -180,6 +181,52 @@ define(function (require, exports, module) {
         _renderTicks(errorsMap);
     }
     
+    
+    function divContainsMouse($div, event, precisionX, precisionY) {
+        var offset = $div.offset();
+        
+        if (typeof precisionX !== 'number') {
+            precisionX = 0;
+        }
+        if (typeof precisionY !== 'number') {
+            precisionY = 0;
+        }
+        
+        return (event.clientX >= offset.left + precisionY &&
+                event.clientX <= offset.left + $div.width() + precisionX &&
+                event.clientY >= offset.top - precisionY &&
+                event.clientY <= offset.top + $div.height() + precisionY);
+    }
+    
+    function handleMouseClick(event) {
+        if (!divContainsMouse($overlay, event)) {
+            return;
+        }
+        var ticks = $overlay.find('.tickmark-error').filter(function () {
+            return divContainsMouse($(this), event, 2, 5);
+        });
+        
+        if (ticks.length === 0) {
+            return;
+        }
+        var line = ticks[0].dataset.errorLine;
+        var error  = errorsMap[line][0];
+        if (!error) {
+            return;
+        }
+        
+        editor.setSelection(error.endpos, null, true);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+    
+    
+    function init() {
+        var editorHolder = $('#editor-holder')[0];
+        editorHolder.addEventListener('click', handleMouseClick, true);
+    }
+    
+    exports.init            = init;
     exports.setErrorsMap    = setErrorsMap;
     exports.clear           = clear;
     exports.setVisible      = setVisible;

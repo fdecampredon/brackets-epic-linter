@@ -244,6 +244,7 @@ define(function (require, exports, module) {
                 });
    
         errorToolTip.init();
+        errorsTick.init()
         
         scheduleRun();
     });
