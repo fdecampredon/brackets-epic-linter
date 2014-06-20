@@ -194,7 +194,7 @@ define(function (require, exports, module) {
         
         return (event.clientX >= offset.left - precisionX &&
                 event.clientX <= offset.left + $div.width() + precisionX &&
-                event.clientY >= offset.top - precisionY &&
+                event.clientY >= offset.top - precisionY * 2 &&
                 event.clientY <= offset.top + $div.height() + precisionY);
     }
     
@@ -213,7 +213,7 @@ define(function (require, exports, module) {
         if(!$overlay) {
             return [];
         }
-        if (!divContainsMouse($overlay, event)) {
+        if (!divContainsMouse($overlay, event, 2)) {
             return [];
         }
         var ticks = $overlay.find('.tickmark-error').filter(function () {
