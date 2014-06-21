@@ -61,33 +61,43 @@ define(function (require) {
      * but always in the bound of the editor
      */
     function positionToolTip(xpos, ypos, ybot) {
-        var toolTipWidth  = $errorToolTipContainer.width(),
-            toolTipHeight = $errorToolTipContainer.height(),
-            top           = ybot + TOOLTIP_BOUNDS_OFFSET,
-            left          = xpos - (toolTipWidth / 2 ),
-            $editorHolder = $('#editor-holder'),
-            editorOffset = $editorHolder.offset();
+        $errorToolTipContainer.offset({
+            left: 0,
+            top: 0
+        });
+        $errorToolTipContainer.css('visibility', 'hidden');
         
+        window.requestAnimationFrame(function () {
+            var toolTipWidth  = $errorToolTipContainer.width(),
+                toolTipHeight = $errorToolTipContainer.height(),
+                top           = ybot + TOOLTIP_BOUNDS_OFFSET,
+                left          = xpos - (toolTipWidth / 2 ),
+                $editorHolder = $('#editor-holder'),
+                editorOffset = $editorHolder.offset();
 
-        left = Math.max(left, editorOffset.left + TOOLTIP_BOUNDS_OFFSET);
-        left = Math.min(left, editorOffset.left + $editorHolder.width() - toolTipWidth - TOOLTIP_BOUNDS_OFFSET - 10); 
-        
-        if (top < (editorOffset.top + $editorHolder.height() - toolTipHeight - TOOLTIP_BOUNDS_OFFSET)) {
-            $errorToolTipContainer.removeClass('preview-bubble-above');
-            $errorToolTipContainer.addClass('preview-bubble-below');
-            $errorToolTipContainer.offset({
-                left: left,
-                top: top
-            });
-        } else {
-            $errorToolTipContainer.removeClass('preview-bubble-below');
-            $errorToolTipContainer.addClass('preview-bubble-above');
-            top = ypos - TOOLTIP_BOUNDS_OFFSET - toolTipHeight;
-            $errorToolTipContainer.offset({
-                left: left,
-                top: top
-            });
-        }
+
+            left = Math.max(left, editorOffset.left + TOOLTIP_BOUNDS_OFFSET);
+            left = Math.min(left, editorOffset.left + $editorHolder.width() - toolTipWidth - TOOLTIP_BOUNDS_OFFSET - 10); 
+
+            if (top < (editorOffset.top + $editorHolder.height() - toolTipHeight - TOOLTIP_BOUNDS_OFFSET)) {
+                $errorToolTipContainer.removeClass('preview-bubble-above');
+                $errorToolTipContainer.addClass('preview-bubble-below');
+                $errorToolTipContainer.offset({
+                    left: left,
+                    top: top
+                });
+            } else {
+                $errorToolTipContainer.removeClass('preview-bubble-below');
+                $errorToolTipContainer.addClass('preview-bubble-above');
+                top = ypos - TOOLTIP_BOUNDS_OFFSET - toolTipHeight;
+                $errorToolTipContainer.offset({
+                    left: left,
+                    top: top
+                });
+            }   
+            
+            $errorToolTipContainer.css('visibility', 'visible');
+        });
     }
     
     
@@ -104,7 +114,7 @@ define(function (require) {
         
         var editor = EditorManager.getCurrentFullEditor();
         
-        if (!editor || !divContainsMouse($(editor.getRootElement()), event)) {
+        if (!editor || !divContainsMouse($(editor.getRootElement()), event, 10, 10)) {
             hideErrorToolTip();
             return;
         }
@@ -112,11 +122,6 @@ define(function (require) {
         var cm = editor._codeMirror,
             pos = cm.coordsChar({left: event.clientX, top: event.clientY});
 
-        // Bail if mouse is on same char as last event
-        if (lastPos && lastPos.line === pos.line && lastPos.ch === pos.ch) {
-            return;
-        }
-        lastPos = pos;
 
         var lineErrors, coord;
         // No preview if mouse is past last char on line
@@ -132,6 +137,11 @@ define(function (require) {
                 bottom: event.clientY
             };
         } else {
+            // Bail if mouse is on same char as last event
+            if (lastPos && lastPos.line === pos.line && lastPos.ch === pos.ch) {
+                return;
+            }
+            lastPos = pos;
             var lineError = getLineErrorForPos(pos);
             if (!lineError) {
                 hideErrorToolTip();

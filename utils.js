@@ -16,7 +16,7 @@ define(function (require) {
         return (event.clientX >= offset.left - precisionX &&
                 event.clientX <= offset.left + $div.width() + precisionX &&
                 event.clientY >= offset.top - precisionY  &&
-                event.clientY <= offset.top + $div.height() + precisionY * 2);
+                event.clientY <= offset.top + $div.height() + precisionY);
     }
     
     return {
