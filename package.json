@@ -3,7 +3,7 @@
     "title": "Epic Linter",
     "description": "Add interactive linting capabilitie to brackets and error marks in editor",
     "homepage": "https://github.com/fdecampredon/brackets-epic-linter",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "François de Campredon <francois.de.campredon@gmail.com> (https://github.com/fdecampredon)",
     "license": "Apache V2",
     "engines": {
