@@ -204,7 +204,7 @@ define(function (require, exports, module) {
         if (!divContainsMouse($overlay, event, 2)) {
             return [];
         }
-        var ticks = $overlay.find('.tickmark-error').filter(function () {
+        var ticks = $overlay.find('.tickmark-error, .tickmark-warning').filter(function () {
             return divContainsMouse($(this), event, 2, 5);
         });
         
@@ -219,7 +219,7 @@ define(function (require, exports, module) {
     
     function init() {
         var editorHolder = $('#editor-holder')[0];
-        editorHolder.addEventListener('click', handleMouseClick, true);
+        editorHolder.addEventListener('mousedown', handleMouseClick, true);
     }
     
     exports.init                = init;
