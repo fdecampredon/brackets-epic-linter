@@ -7,7 +7,8 @@ define(function (require, exports, module) {
     var AppInit          = brackets.getModule('utils/AppInit'),
         ExtensionUtils   = brackets.getModule('utils/ExtensionUtils'),
         DocumentManager  = brackets.getModule('document/DocumentManager'),
-        CodeInspection   = brackets.getModule('language/CodeInspection');
+        CodeInspection   = brackets.getModule('language/CodeInspection'),
+        MainViewManager  = brackets.getModule("view/MainViewManager");
     
     
     var errorsMarks = require('./errorsMarks'),
@@ -233,15 +234,15 @@ define(function (require, exports, module) {
     
     AppInit.appReady(function () {
         // we listen to the same events than CodeInspection
-        $(DocumentManager)
-                .on('currentDocumentChange', function () {
+        $(MainViewManager)
+                .on('currentFileChange', function () {
                     run();
-                })
-                .on('documentSaved documentRefreshed', function (event, document) {
-                    if (document === DocumentManager.getCurrentDocument()) {
-                        run();
-                    }
                 });
+        $(DocumentManager).on('documentSaved documentRefreshed', function (event, document) {
+            if (document === DocumentManager.getCurrentDocument()) {
+              run();
+            }
+        });
    
         errorToolTip.init();
         errorsTick.init();
