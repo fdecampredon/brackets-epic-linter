@@ -53,7 +53,10 @@ define(function (require) {
         $errorToolTipContent.html('');
     }
     
-    
+    function getEditorHolder() {
+        var fullEditor = EditorManager.getCurrentFullEditor();
+        return fullEditor ? $(fullEditor.getRootElement()) : $('#editor-holder');
+    }
     
     /**
      * if the errorsMap contains errors for the given position returns that error
@@ -88,7 +91,8 @@ define(function (require) {
                 toolTipHeight = $errorToolTipContainer.height(),
                 top           = ybot + TOOLTIP_BOUNDS_OFFSET,
                 left          = xpos - (toolTipWidth / 2 ),
-                $editorHolder = $('#editor-holder'),
+                
+                $editorHolder = getEditorHolder(),
                 editorOffset = $editorHolder.offset();
 
 
@@ -180,7 +184,7 @@ define(function (require) {
     }
     
     function handleMouseOut(event) {
-        var $editorHolder = $('#editor-holder');
+        var $editorHolder = getEditorHolder();
         if (!divContainsMouse($editorHolder, event, 10, 10)) {
             hideErrorToolTip();
         }
