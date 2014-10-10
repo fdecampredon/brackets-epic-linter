@@ -1,3 +1,3 @@
 
-brackets-epic-linter.zip: *.js *.json *.html style
+brackets-epic-linter.zip: main.js package.json lib style LICENSE
 	zip -r $@ $^

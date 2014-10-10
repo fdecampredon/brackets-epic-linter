@@ -1,0 +1,11 @@
+{
+    "undef": true,
+    "unused": true,
+    "browser": true,
+    "globals": {
+        "brackets": true,
+        "$": true,
+        "define": true,
+        "console": true
+    }
+}
